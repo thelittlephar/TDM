@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TDM Calculator — Lithium · Valproate · Phenytoin</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --navy:#12305e; --navy-light:#1d4682;
+  --sky:#3b82f6; --sky-light:#dbeafe;
+  --inp-bg:#e8f2ff; --inp-border:#60a5fa;
+  --amber:#f59e0b; --amber-light:#fffbeb; --amber-dark:#92400e;
+  --green:#22c55e; --green-light:#f0fdf4; --green-dark:#166534;
+  --red:#ef4444; --red-light:#fef2f2; --red-dark:#b91c1c;
+  --card:#ffffff; --base:#edf2f7;
+  --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+  --radius:10px; --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',system-ui,sans-serif;background:var(--base);color:var(--text);min-height:100vh;line-height:1.5}
+
+/* ── HEADER ── */
+header{background:var(--navy);color:#fff;padding:18px 24px 0}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px}
+header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+header p{font-size:12px;opacity:.65;margin-top:3px}
+.print-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Sarabun',sans-serif;
+  transition:background .15s}
+.print-btn:hover{background:rgba(255,255,255,.25)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{padding:9px 18px;border:none;background:rgba(255,255,255,.1);
+  color:rgba(255,255,255,.65);cursor:pointer;border-radius:8px 8px 0 0;
+  font-family:'Sarabun',sans-serif;font-size:13.5px;font-weight:600;
+  transition:all .15s;white-space:nowrap}
+.tab-btn.active{background:var(--base);color:var(--navy)}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,.2);color:#fff}
+
+/* ── CONTENT ── */
+.content{max-width:980px;margin:0 auto;padding:22px 14px 56px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.card-head{padding:11px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card-head.blue{background:var(--navy);color:#fff}
+.card-head.teal{background:#0f5288;color:#fff}
+.card-head.section{background:#1d4ed8;color:#fff}
+.card-body{padding:18px}
+
+/* ── GRID ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.grid-2{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.full{grid-column:1/-1}
+
+/* ── FIELD ── */
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:12.5px;font-weight:600;color:#374151}
+.field input,.field select{
+  background:var(--inp-bg);border:1.5px solid var(--inp-border);
+  border-radius:6px;padding:7px 10px;
+  font-family:'IBM Plex Mono','Sarabun',monospace;font-size:14px;color:var(--text);
+  outline:none;transition:border .15s,background .15s}
+.field input:focus,.field select:focus{border-color:#1d4ed8;background:#dbeafe}
+.field select{font-family:'Sarabun',sans-serif}
+.unit{font-size:11px;color:var(--muted);margin-top:1px}
+.field input[readonly]{background:#f1f5f9;color:var(--muted);border-color:#cbd5e1;cursor:default}
+
+/* ── REQUIRED FIELDS ── */
+.field.required label::after{content:' *';color:var(--red);font-weight:800}
+.field.required .unit{color:#9a3412;font-weight:600}
+.field input.invalid,.field select.invalid{
+  border-color:var(--red)!important;background:var(--red-light)!important;
+  box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.field input.invalid:focus{background:var(--red-light)!important}
+
+/* ── WARNING BANNER (missing required fields) ── */
+.req-warn{
+  display:none;align-items:flex-start;gap:8px;
+  background:var(--red-light);border:1.5px solid var(--red);color:var(--red-dark);
+  padding:9px 12px;border-radius:6px;font-size:12.5px;font-weight:600;
+  margin-bottom:12px;line-height:1.4}
+.req-warn.show{display:flex}
+.req-warn .ic{font-size:15px;line-height:1.2}
+
+/* ── PENDING (waiting for required input) ── */
+.pending{color:var(--muted)!important;font-style:italic}
+
+/* ── LEGEND ── */
+.legend{
+  display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+  background:#fff;border:1px solid var(--border);border-radius:8px;
+  padding:9px 14px;margin-bottom:16px;font-size:12px;color:var(--muted)}
+.legend b{color:var(--red)}
+.legend .chip{display:inline-flex;align-items:center;gap:5px}
+.legend .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend .dot.ok{background:var(--green);border:1px solid var(--green-dark)}
+.legend .dot.hi{background:var(--red);border:1px solid var(--red-dark)}
+.legend .dot.na{background:#cbd5e1;border:1px solid var(--muted)}
+
+/* ── NOTE ── */
+.note{background:#fffbeb;border-left:3px solid var(--amber);
+  padding:7px 12px;border-radius:0 6px 6px 0;font-size:12px;color:#78350f;margin-top:8px}
+.note-blue{background:#eff6ff;border-left:3px solid var(--sky);color:#1e40af}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;margin-top:6px}
+table{width:100%;border-collapse:collapse}
+th{background:#f0f7ff;text-align:left;padding:8px 12px;
+  font-size:12px;font-weight:700;color:var(--navy);border-bottom:2px solid var(--sky)}
+td{padding:7px 12px;border-bottom:1px solid #f1f5f9;font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+
+/* ── RESULT VALUE ── */
+.rv{
+  font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;
+  background:var(--amber-light);color:var(--amber-dark);
+  border:1.5px solid var(--amber);padding:3px 10px;border-radius:5px;
+  display:inline-block;min-width:72px;text-align:right}
+.rv.ok{background:var(--green-light);color:var(--green-dark);border-color:var(--green)}
+.rv.hi{background:var(--red-light);color:var(--red-dark);border-color:var(--red)}
+.rv.na{background:#f8fafc;color:var(--muted);border-color:#cbd5e1}
+
+/* ── BADGE ── */
+.bm{background:#dbeafe;color:#1e40af;font-size:11px;font-weight:700;
+  padding:1px 7px;border-radius:99px;display:inline-block}
+.bf{background:#fce7f3;color:#9d174d;font-size:11px;font-weight:700;
+  padding:1px 7px;border-radius:99px;display:inline-block}
+
+/* ── SUB TITLE ── */
+.sub{font-size:13px;font-weight:700;color:#1d4ed8;margin:14px 0 8px;
+  display:flex;align-items:center;gap:6px}
+.sub::before{content:'';display:block;width:3px;height:14px;background:#1d4ed8;border-radius:2px}
+hr.div{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* ── FOOTER ── */
+footer{text-align:center;padding:16px;font-size:11.5px;color:var(--muted)}
+
+/* ── PRINT ── */
+@media print{
+  header .tabs,.print-btn{display:none}
+  .tab-panel{display:block!important}
+  .card{page-break-inside:avoid;box-shadow:none;border:1px solid #e2e8f0}
+}
+@media(max-width:540px){
+  header h1{font-size:16px}
+  .grid{grid-template-columns:1fr}
+  th,td{font-size:12px;padding:6px 8px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-top">
+    <div>
+      <h1>TDM Calculator — ระบบคำนวณขนาดยา</h1>
+      <p>Therapeutic Drug Monitoring · Lithium · Valproate · Phenytoin Capsule / Infatab</p>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨 พิมพ์</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('li',this)">💊 Lithium</button>
+    <button class="tab-btn" onclick="switchTab('vp',this)">💊 Valproate</button>
+    <button class="tab-btn" onclick="switchTab('pc',this)">💊 Phenytoin Capsule</button>
+    <button class="tab-btn" onclick="switchTab('pi',this)">💊 Phenytoin Infatab</button>
+  </div>
+</header>
+
+<div class="content">
+
+<div class="legend">
+  <span class="chip"><b>*</b> = ช่องบังคับกรอก — ถ้ากรอกไม่ครบ ระบบจะไม่คำนวณ (ช่องจะขึ้นสีแดง และแสดง <em>"รอข้อมูล"</em>)</span>
+  <span class="chip"><span class="dot ok"></span> อยู่ในช่วง Therapeutic range</span>
+  <span class="chip"><span class="dot hi"></span> นอกช่วง / ต้องระวัง</span>
+  <span class="chip"><span class="dot na"></span> รอข้อมูล / คำนวณไม่ได้</span>
+</div>
+
+<!-- ═══════════════════════════ LITHIUM ═══════════════════════════ -->
+<div id="tab-li" class="tab-panel active">
+
+  <div class="card">
+    <div class="card-head blue">📥 ข้อมูลผู้ป่วย — Lithium</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>น้ำหนัก (Weight)</label>
+          <input type="number" id="li_wt" value="45" min="1" oninput="calcLi()">
+          <span class="unit">kg</span></div>
+        <div class="field required"><label>ส่วนสูง (Height)</label>
+          <input type="number" id="li_ht" value="160" min="100" oninput="calcLi()">
+          <span class="unit">cm</span></div>
+        <div class="field required"><label>อายุ (Age)</label>
+          <input type="number" id="li_age" value="35" min="1" oninput="calcLi()">
+          <span class="unit">ปี</span></div>
+        <div class="field required"><label>Serum Creatinine (Scr)</label>
+          <input type="number" id="li_scr" value="0.6" step="0.01" min="0.01" oninput="calcLi()">
+          <span class="unit">mg/dL</span></div>
+        <div class="field required"><label>ขนาดยา/วัน (Dose)</label>
+          <input type="number" id="li_dose" value="2" min="0" step="0.5" oninput="calcLi()">
+          <span class="unit">cap/d (300 mg/cap)</span></div>
+      </div>
+      <div class="note">⭐ <strong>เลือกใช้น้ำหนักที่น้อยกว่า</strong> (IBW หรือ real BW) ในการทำนาย Css</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head section">📊 ผลการทำนายระดับยา (Css Prediction)</div>
+    <div class="card-body">
+      <div class="req-warn" id="li_warn_pred"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนัก ส่วนสูง อายุ Scr และขนาดยา (ช่อง *) ให้ครบทุกช่องก่อน จึงจะคำนวณ Css ได้</span></div>
+      <div class="sub">เพศชาย <span class="bm">Male</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>น้ำหนัก</th><th>BW (kg)</th><th>CrCl (mL/min)</th><th>Css ทำนาย (mEq/L)</th></tr>
+        <tr><td>IBW</td><td id="li_m_ibw">—</td><td id="li_m_crcl_ibw">—</td><td><span class="rv" id="li_m_css_ibw">—</span></td></tr>
+        <tr><td>real BW</td><td id="li_realwt">—</td><td id="li_m_crcl_rbw">—</td><td><span class="rv" id="li_m_css_rbw">—</span></td></tr>
+      </table></div>
+      <hr class="div">
+      <div class="sub">เพศหญิง <span class="bf">Female</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>น้ำหนัก</th><th>BW (kg)</th><th>CrCl (mL/min)</th><th>Css ทำนาย (mEq/L)</th></tr>
+        <tr><td>IBW</td><td id="li_f_ibw">—</td><td id="li_f_crcl_ibw">—</td><td><span class="rv" id="li_f_css_ibw">—</span></td></tr>
+        <tr><td>real BW</td><td id="li_f_rbw">—</td><td id="li_f_crcl_rbw">—</td><td><span class="rv" id="li_f_css_rbw">—</span></td></tr>
+      </table></div>
+      <div class="note">Therapeutic range: <strong>0.6–1.2 mEq/L</strong> (Acute) | <strong>0.5–0.8 mEq/L</strong> (Maintenance)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head teal">💊 แนะนำขนาดยา — Steady State ≥ 7 วัน</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ขนาดยาที่ได้รับปัจจุบัน</label>
+          <input type="number" id="li_given" value="2" min="0" step="0.5" oninput="calcLi()">
+          <span class="unit">cap/d</span></div>
+        <div class="field required"><label>ระดับยาที่วัดได้ที่ ss</label>
+          <input type="number" id="li_ss" value="0.9" step="0.01" min="0.01" oninput="calcLi()">
+          <span class="unit">mEq/L</span></div>
+      </div>
+      <div class="req-warn" id="li_warn_dose"><span class="ic">⚠️</span><span>กรุณากรอกขนาดยาที่ได้รับและระดับยาที่วัดได้ (ช่อง *) ให้ครบก่อน จึงจะแนะนำขนาดยาได้</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>ขนาดยาที่แนะนำ (เป้าหมาย)</th><th>cap/d</th></tr>
+        <tr><td>Minimum dose — target 0.6 mEq/L</td><td><span class="rv" id="li_min">—</span></td></tr>
+        <tr><td>Max dose — Acute phase (target 1.2 mEq/L)</td><td><span class="rv" id="li_max_ac">—</span></td></tr>
+        <tr><td>Max dose — Maintenance (target 1.0 mEq/L)</td><td><span class="rv" id="li_max_ma">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+</div><!-- /li -->
+
+<!-- ═══════════════════════════ VALPROATE ═══════════════════════════ -->
+<div id="tab-vp" class="tab-panel">
+
+  <div class="card">
+    <div class="card-head blue">📥 ข้อมูลผู้ป่วย — Valproate (VPA)</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>น้ำหนัก (Weight)</label>
+          <input type="number" id="vp_wt" value="50" oninput="calcVp()">
+          <span class="unit">kg</span></div>
+        <div class="field"><label>ส่วนสูง (Height)</label>
+          <input type="number" id="vp_ht" value="165" oninput="calcVp()">
+          <span class="unit">cm — ไม่ใช้ในการคำนวณ</span></div>
+        <div class="field required"><label>ขนาดยา/วัน (Dose)</label>
+          <input type="number" id="vp_dose" value="1000" step="50" oninput="calcVp()">
+          <span class="unit">mg/day</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head section">📊 ผลการทำนายระดับยา (C ทำนาย)</div>
+    <div class="card-body">
+      <div class="req-warn" id="vp_warn_pred"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนักและขนาดยา (ช่อง *) ให้ครบก่อน จึงจะคำนวณ C ทำนายได้</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>กลุ่ม</th><th>Clearance</th><th>real BW (kg)</th><th>C ทำนาย (mcg/mL)</th></tr>
+        <tr><td>ผู้ใหญ่ (Adult)</td><td>8 mL/hr/kg</td><td id="vp_rbw">—</td><td><span class="rv" id="vp_ca">—</span></td></tr>
+        <tr><td>เด็ก (Pediatric)</td><td>13 mL/hr/kg</td><td id="vp_rbw2">—</td><td><span class="rv" id="vp_cc">—</span></td></tr>
+      </table></div>
+      <div class="note">Therapeutic range: <strong>50–100 mcg/mL</strong> | Acute Mania: ถึง <strong>125 mcg/mL</strong></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head teal">💊 แนะนำขนาดยา — Steady State ≥ 3 วัน</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ระดับยาที่วัดได้ที่ ss</label>
+          <input type="number" id="vp_ss" value="75" step="0.1" min="0.1" oninput="calcVp()">
+          <span class="unit">mcg/mL</span></div>
+      </div>
+      <div class="req-warn" id="vp_warn_dose"><span class="ic">⚠️</span><span>กรุณากรอกขนาดยาในการ์ดด้านบนและระดับยาที่วัดได้ (ช่อง *) ให้ครบก่อน จึงจะแนะนำขนาดยาได้</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>ขนาดยาที่แนะนำ (เป้าหมาย)</th><th>mg/day</th></tr>
+        <tr><td>Minimum — target 50 mcg/mL</td><td><span class="rv" id="vp_min">—</span></td></tr>
+        <tr><td>Max Maintenance — target 100 mcg/mL</td><td><span class="rv" id="vp_mmax">—</span></td></tr>
+        <tr><td>Max Acute Mania — target 125 mcg/mL</td><td><span class="rv" id="vp_amax">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+</div><!-- /vp -->
+
+<!-- ═══════════════════════════ PHENYTOIN CAPSULE ═══════════════════════════ -->
+<div id="tab-pc" class="tab-panel">
+
+  <div class="card">
+    <div class="card-head blue">📥 ข้อมูลผู้ป่วย — Phenytoin Capsule (F = 0.92)</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>น้ำหนัก (Weight)</label>
+          <input type="number" id="pc_wt" value="60" oninput="calcPc()">
+          <span class="unit">kg</span></div>
+        <div class="field required"><label>ส่วนสูง (Height)</label>
+          <input type="number" id="pc_ht" value="160" oninput="calcPc()">
+          <span class="unit">cm</span></div>
+      </div>
+      <div class="note note-blue">IBW ชาย = 50 + 2.3×(ส่วนสูง(นิ้ว)−60) | IBW หญิง = 45.5 + 2.3×(ส่วนสูง(นิ้ว)−60) — ใช้ในกรณีที่ 1 และ 5</div>
+    </div>
+  </div>
+
+  <!-- PC Case 1 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 1 — ไม่เคยเจาะระดับยา, Albumin ปกติ, ไม่ได้รับ VPA</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ขนาดยา/วัน</label>
+          <input type="number" id="pc1_d" value="300" step="25" oninput="calcPc()">
+          <span class="unit">mg/day</span></div>
+      </div>
+      <div class="req-warn" id="pc1_warn"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนัก/ส่วนสูง (การ์ดด้านบน) และขนาดยา (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>เพศ</th><th>น้ำหนัก</th><th>BW (kg)</th><th>Vmax (mg/d)</th><th>C ทำนาย (mcg/mL)</th></tr>
+        <tr><td><span class="bm">M</span></td><td>IBW</td><td id="pc1_m_ibw">—</td><td id="pc1_m_vm_ibw">—</td><td><span class="rv" id="pc1_m_c_ibw">—</span></td></tr>
+        <tr><td><span class="bm">M</span></td><td>real BW</td><td id="pc1_rbw">—</td><td id="pc1_m_vm_rbw">—</td><td><span class="rv" id="pc1_m_c_rbw">—</span></td></tr>
+        <tr><td><span class="bf">F</span></td><td>IBW</td><td id="pc1_f_ibw">—</td><td id="pc1_f_vm_ibw">—</td><td><span class="rv" id="pc1_f_c_ibw">—</span></td></tr>
+        <tr><td><span class="bf">F</span></td><td>real BW</td><td id="pc1_rbw2">—</td><td id="pc1_f_vm_rbw">—</td><td><span class="rv" id="pc1_f_c_rbw">—</span></td></tr>
+      </table></div>
+      <div class="note">Therapeutic range: <strong>10–20 mcg/mL</strong> | ใช้น้ำหนักที่น้อยกว่าในการทำนาย | Km = 4 mg/L</div>
+    </div>
+  </div>
+
+  <!-- PC Case 2 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 2 — เคยเจาะระดับยา 1 ครั้ง (Steady State ≥ 7 วัน)</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ขนาดยาเดิม/วัน</label>
+          <input type="number" id="pc2_d" value="300" step="25" oninput="calcPc()">
+          <span class="unit">mg/day</span></div>
+        <div class="field required"><label>ระดับยาที่วัดได้ที่ ss</label>
+          <input type="number" id="pc2_ss" value="14.5" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>Dose ที่จะทำนาย</label>
+          <input type="number" id="pc2_nd" value="350" step="25" oninput="calcPc()">
+          <span class="unit">mg/day</span></div>
+      </div>
+      <div class="req-warn" id="pc2_warn"><span class="ic">⚠️</span><span>กรุณากรอกขนาดยาเดิม ระดับยาที่วัดได้ และ dose ที่จะทำนาย (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Vmax (mg/day)</th><th>C ทำนาย ที่ new dose (mcg/mL)</th></tr>
+        <tr><td><span class="rv" id="pc2_vmax">—</span></td><td><span class="rv" id="pc2_cnew">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- PC Case 3 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 3 — ระดับ Albumin ต่ำกว่าปกติ</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ระดับยา Phenytoin ที่วัดได้</label>
+          <input type="number" id="pc3_ss" value="6.6" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL (total)</span></div>
+        <div class="field required"><label>ระดับ Albumin</label>
+          <input type="number" id="pc3_alb" value="3.4" step="0.1" oninput="calcPc()">
+          <span class="unit">g/dL (ปกติ = 4.4 g/dL)</span></div>
+        <div class="field"><label>CrCl (ถ้ามี, optional)</label>
+          <input type="number" id="pc3_crcl" placeholder="— ว่างถ้าไม่ทราบ" step="1" oninput="calcPc()">
+          <span class="unit">mL/min | ไม่บังคับ — ใส่เมื่อสงสัย ESRD (CrCl &lt; 10)</span></div>
+      </div>
+      <div class="req-warn" id="pc3_warn"><span class="ic">⚠️</span><span>กรุณากรอกระดับยา Phenytoin และ Albumin (ช่อง *) ให้ครบก่อน (CrCl ไม่บังคับ)</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>สูตร correction ที่ใช้</th><th>C อิสระ ทำนาย (mcg/mL)</th></tr>
+        <tr><td id="pc3_form">—</td><td><span class="rv" id="pc3_c">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- PC Case 4 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 4 — ได้รับ Valproate (VPA) ร่วมด้วย</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ระดับยา Phenytoin ที่วัดได้ (total ss)</label>
+          <input type="number" id="pc4_ss" value="9.3" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>ระดับยา VPA</label>
+          <input type="number" id="pc4_vpa" value="61.5" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL</span></div>
+      </div>
+      <div class="req-warn" id="pc4_warn"><span class="ic">⚠️</span><span>กรุณากรอกระดับยา Phenytoin และ VPA (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>C อิสระ Phenytoin ทำนาย (mcg/mL)</th></tr>
+        <tr><td><span class="rv" id="pc4_c">—</span></td></tr>
+      </table></div>
+      <div class="note">สูตร: C_free = ((0.095 + 0.001×[VPA]) × C_total) / 0.1</div>
+    </div>
+  </div>
+
+  <!-- PC Case 5 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 5 — ระดับยาเกิน Therapeutic Range (คำนวณวันหยุดยา)</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ขนาดยา/วัน (ที่ใช้ก่อน hold)</label>
+          <input type="number" id="pc5_d" value="250" step="25" oninput="calcPc()">
+          <span class="unit">mg/day</span></div>
+        <div class="field required"><label>ระดับยา C1 (ที่วัดได้)</label>
+          <input type="number" id="pc5_c1" value="24.9" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>ระดับยา C2 (ที่ต้องการ)</label>
+          <input type="number" id="pc5_c2" value="15" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field"><label>Obesity?</label>
+          <select id="pc5_ob" onchange="calcPc()">
+            <option value="0">0 = ไม่ใช่ (Non-obese)</option>
+            <option value="1">1 = ใช่ (Obese)</option>
+          </select></div>
+      </div>
+      <div class="req-warn" id="pc5_warn"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนัก/ส่วนสูง (การ์ดด้านบนสุด) และขนาดยา, C1, C2 (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>น้ำหนัก / เพศ</th><th>Vd (L)</th><th>วันที่ต้องหยุดยา (วัน)</th></tr>
+        <tr><td>real BW</td><td id="pc5_vdr">—</td><td><span class="rv" id="pc5_dr">—</span></td></tr>
+        <tr><td><span class="bm">M</span> IBW (adj.)</td><td id="pc5_vdm">—</td><td><span class="rv" id="pc5_dm">—</span></td></tr>
+        <tr><td><span class="bf">F</span> IBW (adj.)</td><td id="pc5_vdf">—</td><td><span class="rv" id="pc5_df">—</span></td></tr>
+      </table></div>
+      <hr class="div">
+      <div class="sub">Dose ที่ควรได้รับหลัง Hold ยา</div>
+      <div class="grid grid-2">
+        <div class="field"><label>C เป้าหมายหลัง Hold</label>
+          <input type="number" id="pc5_ct" value="20" step="0.1" oninput="calcPc()">
+          <span class="unit">mcg/mL (ไม่บังคับ — ค่าเริ่มต้น 20)</span></div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Vmax (mg/day)</th><th>Dose/day ที่แนะนำ (mg/day)</th></tr>
+        <tr><td id="pc5_vm">—</td><td><span class="rv" id="pc5_da">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+</div><!-- /pc -->
+
+<!-- ═══════════════════════════ PHENYTOIN INFATAB ═══════════════════════════ -->
+<div id="tab-pi" class="tab-panel">
+
+  <div class="card">
+    <div class="card-head blue">📥 ข้อมูลผู้ป่วย — Phenytoin Infatab (F = 1.0)</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>น้ำหนัก (Weight)</label>
+          <input type="number" id="pi_wt" value="48" oninput="calcPi()">
+          <span class="unit">kg</span></div>
+        <div class="field required"><label>ส่วนสูง (Height)</label>
+          <input type="number" id="pi_ht" value="150" oninput="calcPi()">
+          <span class="unit">cm</span></div>
+      </div>
+      <div class="note note-blue">Infatab (chewable tablet) — Bioavailability F = 1.0 (เต็ม 100%) | ผล C ทำนายสูงกว่า Capsule — ใช้ในกรณีที่ 1 และ 5</div>
+    </div>
+  </div>
+
+  <!-- PI Case 1 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 1 — ไม่เคยเจาะระดับยา, Albumin ปกติ, ไม่ได้รับ VPA</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ขนาดยา/วัน</label>
+          <input type="number" id="pi1_d" value="250" step="25" oninput="calcPi()">
+          <span class="unit">mg/day</span></div>
+      </div>
+      <div class="req-warn" id="pi1_warn"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนัก/ส่วนสูง (การ์ดด้านบน) และขนาดยา (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>เพศ</th><th>น้ำหนัก</th><th>BW (kg)</th><th>Vmax (mg/d)</th><th>C ทำนาย (mcg/mL)</th></tr>
+        <tr><td><span class="bm">M</span></td><td>IBW</td><td id="pi1_m_ibw">—</td><td id="pi1_m_vm_ibw">—</td><td><span class="rv" id="pi1_m_c_ibw">—</span></td></tr>
+        <tr><td><span class="bm">M</span></td><td>real BW</td><td id="pi1_rbw">—</td><td id="pi1_m_vm_rbw">—</td><td><span class="rv" id="pi1_m_c_rbw">—</span></td></tr>
+        <tr><td><span class="bf">F</span></td><td>IBW</td><td id="pi1_f_ibw">—</td><td id="pi1_f_vm_ibw">—</td><td><span class="rv" id="pi1_f_c_ibw">—</span></td></tr>
+        <tr><td><span class="bf">F</span></td><td>real BW</td><td id="pi1_rbw2">—</td><td id="pi1_f_vm_rbw">—</td><td><span class="rv" id="pi1_f_c_rbw">—</span></td></tr>
+      </table></div>
+      <div class="note">Therapeutic range: <strong>10–20 mcg/mL</strong> | ใช้น้ำหนักที่น้อยกว่าในการทำนาย | Km = 4 mg/L</div>
+    </div>
+  </div>
+
+  <!-- PI Case 2 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 2 — เคยเจาะระดับยา 1 ครั้ง</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ขนาดยาเดิม/วัน</label>
+          <input type="number" id="pi2_d" value="200" step="25" oninput="calcPi()">
+          <span class="unit">mg/day</span></div>
+        <div class="field required"><label>ระดับยาที่วัดได้ที่ ss</label>
+          <input type="number" id="pi2_ss" value="6.6" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>Dose ที่จะทำนาย</label>
+          <input type="number" id="pi2_nd" value="300" step="25" oninput="calcPi()">
+          <span class="unit">mg/day</span></div>
+      </div>
+      <div class="req-warn" id="pi2_warn"><span class="ic">⚠️</span><span>กรุณากรอกขนาดยาเดิม ระดับยาที่วัดได้ และ dose ที่จะทำนาย (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Vmax (mg/day)</th><th>C ทำนาย ที่ new dose (mcg/mL)</th></tr>
+        <tr><td><span class="rv" id="pi2_vmax">—</span></td><td><span class="rv" id="pi2_cnew">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- PI Case 3 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 3 — ระดับ Albumin ต่ำกว่าปกติ</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ระดับยา Phenytoin ที่วัดได้</label>
+          <input type="number" id="pi3_ss" value="6.6" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>ระดับ Albumin</label>
+          <input type="number" id="pi3_alb" value="3.4" step="0.1" oninput="calcPi()">
+          <span class="unit">g/dL</span></div>
+        <div class="field"><label>CrCl (optional)</label>
+          <input type="number" id="pi3_crcl" placeholder="— ว่างถ้าไม่ทราบ" step="1" oninput="calcPi()">
+          <span class="unit">mL/min — ไม่บังคับ</span></div>
+      </div>
+      <div class="req-warn" id="pi3_warn"><span class="ic">⚠️</span><span>กรุณากรอกระดับยา Phenytoin และ Albumin (ช่อง *) ให้ครบก่อน (CrCl ไม่บังคับ)</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>สูตร correction ที่ใช้</th><th>C อิสระ ทำนาย (mcg/mL)</th></tr>
+        <tr><td id="pi3_form">—</td><td><span class="rv" id="pi3_c">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- PI Case 4 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 4 — ได้รับ Valproate (VPA) ร่วมด้วย</div>
+    <div class="card-body">
+      <div class="grid grid-2">
+        <div class="field required"><label>ระดับยา Phenytoin ที่วัดได้</label>
+          <input type="number" id="pi4_ss" value="6.6" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>ระดับยา VPA</label>
+          <input type="number" id="pi4_vpa" value="78.1" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+      </div>
+      <div class="req-warn" id="pi4_warn"><span class="ic">⚠️</span><span>กรุณากรอกระดับยา Phenytoin และ VPA (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>C อิสระ Phenytoin ทำนาย (mcg/mL)</th></tr>
+        <tr><td><span class="rv" id="pi4_c">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- PI Case 5 -->
+  <div class="card">
+    <div class="card-head section">🔹 กรณีที่ 5 — ระดับยาเกิน Therapeutic Range (คำนวณวันหยุดยา)</div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field required"><label>ขนาดยา/วัน (ก่อน hold)</label>
+          <input type="number" id="pi5_d" value="250" step="25" oninput="calcPi()">
+          <span class="unit">mg/day</span></div>
+        <div class="field required"><label>ระดับยา C1 (ที่วัดได้)</label>
+          <input type="number" id="pi5_c1" value="24.9" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field required"><label>ระดับยา C2 (ที่ต้องการ)</label>
+          <input type="number" id="pi5_c2" value="15" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL</span></div>
+        <div class="field"><label>Obesity?</label>
+          <select id="pi5_ob" onchange="calcPi()">
+            <option value="0">0 = ไม่ใช่ (Non-obese)</option>
+            <option value="1">1 = ใช่ (Obese)</option>
+          </select></div>
+      </div>
+      <div class="req-warn" id="pi5_warn"><span class="ic">⚠️</span><span>กรุณากรอกน้ำหนัก/ส่วนสูง (การ์ดด้านบนสุด) และขนาดยา, C1, C2 (ช่อง *) ให้ครบก่อน</span></div>
+      <div class="tbl-wrap"><table>
+        <tr><th>น้ำหนัก / เพศ</th><th>Vd (L)</th><th>วันที่ต้องหยุดยา (วัน)</th></tr>
+        <tr><td>real BW</td><td id="pi5_vdr">—</td><td><span class="rv" id="pi5_dr">—</span></td></tr>
+        <tr><td><span class="bm">M</span> IBW (adj.)</td><td id="pi5_vdm">—</td><td><span class="rv" id="pi5_dm">—</span></td></tr>
+        <tr><td><span class="bf">F</span> IBW (adj.)</td><td id="pi5_vdf">—</td><td><span class="rv" id="pi5_df">—</span></td></tr>
+      </table></div>
+      <hr class="div">
+      <div class="sub">Dose ที่ควรได้รับหลัง Hold ยา</div>
+      <div class="grid grid-2">
+        <div class="field"><label>C เป้าหมายหลัง Hold</label>
+          <input type="number" id="pi5_ct" value="20" step="0.1" oninput="calcPi()">
+          <span class="unit">mcg/mL (ไม่บังคับ — ค่าเริ่มต้น 20)</span></div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <tr><th>Vmax (mg/day)</th><th>Dose/day ที่แนะนำ (mg/day)</th></tr>
+        <tr><td id="pi5_vm">—</td><td><span class="rv" id="pi5_da">—</span></td></tr>
+      </table></div>
+    </div>
+  </div>
+
+</div><!-- /pi -->
+
+</div><!-- /content -->
+
+<footer>TDM Calculator · ดัดแปลงจาก TDM_excel_fixed_blue_input.xlsx · สำหรับใช้ภายในเท่านั้น · ผลการคำนวณต้องผ่านการพิจารณาโดยเภสัชกรหรือแพทย์</footer>
+
+<script>
+/* ── utilities ── */
+const g = id => parseFloat(document.getElementById(id).value);
+const gv = id => document.getElementById(id).value;
+const t = id => document.getElementById(id);
+const f2 = v => (v === null || isNaN(v) || !isFinite(v)) ? 'N/A' : v.toFixed(2);
+
+/* Validate a list of required input ids.
+   Marks each empty/invalid input with .invalid (red border) and returns
+   { ok:boolean, vals:{id:number|null} } so callers can bail out cleanly. */
+function validReq(ids) {
+  let ok = true;
+  const vals = {};
+  ids.forEach(id => {
+    const el = t(id);
+    const raw = el.value.trim();
+    const v = parseFloat(raw);
+    const valid = raw !== '' && !isNaN(v) && isFinite(v);
+    vals[id] = valid ? v : null;
+    el.classList.toggle('invalid', !valid);
+    if (!valid) ok = false;
+  });
+  return { ok, vals };
+}
+function showWarn(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('show', !!show);
+}
+
+function setRv(id, v, lo, hi, pending) {
+  const el = t(id);
+  if (pending) { el.textContent = 'รอข้อมูล'; el.className = 'rv na pending'; return; }
+  el.textContent = f2(v);
+  el.className = 'rv';
+  if (v === null || isNaN(v) || !isFinite(v)) { el.classList.add('na'); return; }
+  if (lo !== undefined && hi !== undefined) {
+    if (v < lo) el.classList.add('hi'); // low shows red too (out of range)
+    else if (v > hi) el.classList.add('hi');
+    else el.classList.add('ok');
+  }
+}
+function setText(id, v, pending) {
+  const el = t(id);
+  if (pending) { el.textContent = 'รอข้อมูล'; el.classList.add('pending'); return; }
+  el.classList.remove('pending');
+  el.textContent = v === null ? 'N/A (Obese)' : f2(v);
+}
+
+function ibw(ht, sex) {
+  const htIn = ht / 2.54;
+  return sex === 'M' ? 50 + 2.3*(htIn-60) : 45.5 + 2.3*(htIn-60);
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  t('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ════════════════════ LITHIUM ════════════════════ */
+function calcLi() {
+  // Block 1: Css prediction — requires weight, height, age, Scr, dose
+  const r1 = validReq(['li_wt','li_ht','li_age','li_scr','li_dose']);
+  showWarn('li_warn_pred', !r1.ok);
+  if (r1.ok) {
+    const wt=r1.vals.li_wt, ht=r1.vals.li_ht, age=r1.vals.li_age, scr=r1.vals.li_scr, dose=r1.vals.li_dose;
+    const ibwM=ibw(ht,'M'), ibwF=ibw(ht,'F');
+    const crcl=(bw,sex)=>{ const base=((140-age)*bw)/(72*scr); return sex==='F'?base*0.85:base; };
+    // Css = (dose_cap × 8.12) / ((0.235 × CrCl × 24 × 60) / 1000)
+    const css=crcl_val=>(dose*8.12)/((0.235*crcl_val*24*60)/1000);
+    const crclMI=crcl(ibwM,'M'), crclMR=crcl(wt,'M');
+    const crclFI=crcl(ibwF,'F'), crclFR=crcl(wt,'F');
+    setText('li_m_ibw', ibwM);  setText('li_realwt', wt);
+    setText('li_f_ibw', ibwF);  setText('li_f_rbw', wt);
+    setText('li_m_crcl_ibw', crclMI); setText('li_m_crcl_rbw', crclMR);
+    setText('li_f_crcl_ibw', crclFI); setText('li_f_crcl_rbw', crclFR);
+    setRv('li_m_css_ibw', css(crclMI), 0.6, 1.2);
+    setRv('li_m_css_rbw', css(crclMR), 0.6, 1.2);
+    setRv('li_f_css_ibw', css(crclFI), 0.6, 1.2);
+    setRv('li_f_css_rbw', css(crclFR), 0.6, 1.2);
+  } else {
+    ['li_m_ibw','li_realwt','li_f_ibw','li_f_rbw','li_m_crcl_ibw','li_m_crcl_rbw','li_f_crcl_ibw','li_f_crcl_rbw']
+      .forEach(id => setText(id, null, true));
+    ['li_m_css_ibw','li_m_css_rbw','li_f_css_ibw','li_f_css_rbw']
+      .forEach(id => setRv(id, null, undefined, undefined, true));
+  }
+
+  // Block 2: recommended dose — requires current dose, measured ss level
+  const r2 = validReq(['li_given','li_ss']);
+  showWarn('li_warn_dose', !r2.ok);
+  if (r2.ok) {
+    const given=r2.vals.li_given, ss=r2.vals.li_ss;
+    setRv('li_min', (0.6*given)/ss);
+    setRv('li_max_ac', (1.2*given)/ss);
+    setRv('li_max_ma', (1.0*given)/ss);
+  } else {
+    ['li_min','li_max_ac','li_max_ma'].forEach(id => setRv(id, null, undefined, undefined, true));
+  }
+}
+
+/* ════════════════════ VALPROATE ════════════════════ */
+function calcVp() {
+  // Block 1: C prediction — requires weight, dose
+  const r1 = validReq(['vp_wt','vp_dose']);
+  showWarn('vp_warn_pred', !r1.ok);
+  if (r1.ok) {
+    const wt=r1.vals.vp_wt, dose=r1.vals.vp_dose;
+    setText('vp_rbw', wt); setText('vp_rbw2', wt);
+    // C = (1000 × dose_mg) / (CL_per_kg × 24 × wt)
+    setRv('vp_ca', (1000*dose)/(8*24*wt),  50, 100);
+    setRv('vp_cc', (1000*dose)/(13*24*wt), 50, 125);
+  } else {
+    setText('vp_rbw', null, true); setText('vp_rbw2', null, true);
+    setRv('vp_ca', null, undefined, undefined, true);
+    setRv('vp_cc', null, undefined, undefined, true);
+  }
+
+  // Block 2: recommended dose — requires dose, measured ss level
+  const r2 = validReq(['vp_dose','vp_ss']);
+  showWarn('vp_warn_dose', !r2.ok);
+  if (r2.ok) {
+    const dose=r2.vals.vp_dose, ss=r2.vals.vp_ss;
+    setRv('vp_min',  (50*dose)/ss);
+    setRv('vp_mmax', (100*dose)/ss);
+    setRv('vp_amax', (125*dose)/ss);
+  } else {
+    ['vp_min','vp_mmax','vp_amax'].forEach(id => setRv(id, null, undefined, undefined, true));
+  }
+}
+
+/* ════════════════════ PHENYTOIN SHARED ════════════════════ */
+function phtCase1(wt, ht, dose, F, prefix) {
+  const ibwM=ibw(ht,'M'), ibwF=ibw(ht,'F');
+  const vmax=bw=>7*bw;
+  // Css = (Km × F × dose) / (Vmax − F × dose)   [Km = 4]
+  const cpred=(bw,d)=>{const vm=vmax(bw); return (4*F*d)/(vm-(F*d));};
+  setText(`${prefix}_m_ibw`,ibwM); setText(`${prefix}_rbw`,wt);
+  setText(`${prefix}_f_ibw`,ibwF); setText(`${prefix}_rbw2`,wt);
+  setText(`${prefix}_m_vm_ibw`, vmax(ibwM)); setText(`${prefix}_m_vm_rbw`, vmax(wt));
+  setText(`${prefix}_f_vm_ibw`, vmax(ibwF)); setText(`${prefix}_f_vm_rbw`, vmax(wt));
+  setRv(`${prefix}_m_c_ibw`, cpred(ibwM,dose), 10, 20);
+  setRv(`${prefix}_m_c_rbw`, cpred(wt,dose),   10, 20);
+  setRv(`${prefix}_f_c_ibw`, cpred(ibwF,dose), 10, 20);
+  setRv(`${prefix}_f_c_rbw`, cpred(wt,dose),   10, 20);
+}
+function pendingCase1(prefix) {
+  ['_m_ibw','_rbw','_f_ibw','_rbw2','_m_vm_ibw','_m_vm_rbw','_f_vm_ibw','_f_vm_rbw']
+    .forEach(suf => setText(`${prefix}${suf}`, null, true));
+  ['_m_c_ibw','_m_c_rbw','_f_c_ibw','_f_c_rbw']
+    .forEach(suf => setRv(`${prefix}${suf}`, null, undefined, undefined, true));
+}
+
+function phtCase2(d, ss, nd, F, vmId, cnewId) {
+  const vmax=((F*d)*(4+ss))/ss;
+  setRv(vmId, vmax);
+  setRv(cnewId, (4*(F*nd))/((vmax-(F*nd))), 10, 20);
+}
+
+function phtCase3(ss, alb, crclStr, formId, cId) {
+  const crcl3 = crclStr===''?null:parseFloat(crclStr);
+  let c, form;
+  if(crcl3!==null && !isNaN(crcl3) && crcl3<10){
+    c=ss/(((0.9*(alb/4.4))+0.1)*0.44);
+    form='ESRD correction: Sheiner-Tozer × 0.44 (CrCl < 10 mL/min)';
+  } else {
+    c=ss/((0.9*(alb/4.4))+0.1);
+    form='Low albumin: Sheiner-Tozer correction';
+  }
+  t(formId).textContent=form;
+  t(formId).classList.remove('pending');
+  setRv(cId, c, 1, 2); // free phenytoin: 1-2 mcg/mL
+}
+
+function phtCase4(ss, vpa, cId) {
+  setRv(cId, (((0.095+(0.001*vpa))*ss)/0.1));
+}
+
+function phtCase5(wt, ht, d, c1, c2, obese, F, prefix) {
+  const ibwM=ibw(ht,'M'), ibwF=ibw(ht,'F');
+  const vmax5=((F*d)*(4+c1))/c1;
+  const vmEl = t(`${prefix}_vm`);
+  vmEl.textContent = f2(vmax5)+' mg/day';
+  vmEl.classList.remove('pending');
+
+  const vdr = obese===1?null:0.65*wt;
+  const vdm = obese===1?0.65*(ibwM+1.33*(wt-ibwM)):0.65*ibwM;
+  const vdf = obese===1?0.65*(ibwF+1.33*(wt-ibwF)):0.65*ibwF;
+
+  const days=vd=>((4*(Math.log(c1/c2))+(c1-c2))/(vmax5/vd));
+
+  setText(`${prefix}_vdr`, vdr); setText(`${prefix}_vdm`, vdm); setText(`${prefix}_vdf`, vdf);
+  t(`${prefix}_dr`).textContent = vdr===null?'N/A':f2(days(vdr));
+  t(`${prefix}_dr`).className   = 'rv'+(vdr===null?' na':'');
+  setRv(`${prefix}_dm`, days(vdm));
+  setRv(`${prefix}_df`, days(vdf));
+
+  const ct=parseFloat(t(`${prefix}_ct`).value)||20;
+  const da = F===0.92 ? (vmax5*ct)/((4+ct)*F) : (vmax5*ct)/(4+ct);
+  setRv(`${prefix}_da`, da);
+}
+function pendingCase5(prefix) {
+  const vmEl = t(`${prefix}_vm`);
+  vmEl.textContent = 'รอข้อมูล'; vmEl.classList.add('pending');
+  ['_vdr','_vdm','_vdf'].forEach(suf => setText(`${prefix}${suf}`, null, true));
+  const drEl = t(`${prefix}_dr`);
+  drEl.textContent = 'รอข้อมูล'; drEl.className = 'rv na pending';
+  setRv(`${prefix}_dm`, null, undefined, undefined, true);
+  setRv(`${prefix}_df`, null, undefined, undefined, true);
+  setRv(`${prefix}_da`, null, undefined, undefined, true);
+}
+
+/* ════════════════════ PHENYTOIN CAPSULE (F=0.92) ════════════════════ */
+function calcPc() {
+  const F=0.92;
+  const base = validReq(['pc_wt','pc_ht']);
+  const wt = base.vals.pc_wt, ht = base.vals.pc_ht;
+
+  const r1 = validReq(['pc1_d']);
+  const ok1 = base.ok && r1.ok;
+  showWarn('pc1_warn', !ok1);
+  if (ok1) phtCase1(wt, ht, r1.vals.pc1_d, F, 'pc1'); else pendingCase1('pc1');
+
+  const r2 = validReq(['pc2_d','pc2_ss','pc2_nd']);
+  showWarn('pc2_warn', !r2.ok);
+  if (r2.ok) phtCase2(r2.vals.pc2_d, r2.vals.pc2_ss, r2.vals.pc2_nd, F, 'pc2_vmax', 'pc2_cnew');
+  else { setRv('pc2_vmax', null, undefined, undefined, true); setRv('pc2_cnew', null, undefined, undefined, true); }
+
+  const r3 = validReq(['pc3_ss','pc3_alb']);
+  showWarn('pc3_warn', !r3.ok);
+  if (r3.ok) phtCase3(r3.vals.pc3_ss, r3.vals.pc3_alb, gv('pc3_crcl'), 'pc3_form', 'pc3_c');
+  else { const el=t('pc3_form'); el.textContent='รอข้อมูล'; el.classList.add('pending'); setRv('pc3_c', null, undefined, undefined, true); }
+
+  const r4 = validReq(['pc4_ss','pc4_vpa']);
+  showWarn('pc4_warn', !r4.ok);
+  if (r4.ok) phtCase4(r4.vals.pc4_ss, r4.vals.pc4_vpa, 'pc4_c');
+  else setRv('pc4_c', null, undefined, undefined, true);
+
+  const r5 = validReq(['pc5_d','pc5_c1','pc5_c2']);
+  const ok5 = base.ok && r5.ok;
+  showWarn('pc5_warn', !ok5);
+  if (ok5) phtCase5(wt, ht, r5.vals.pc5_d, r5.vals.pc5_c1, r5.vals.pc5_c2, parseInt(gv('pc5_ob')), F, 'pc5');
+  else pendingCase5('pc5');
+}
+
+/* ════════════════════ PHENYTOIN INFATAB (F=1.0) ════════════════════ */
+function calcPi() {
+  const F=1.0;
+  const base = validReq(['pi_wt','pi_ht']);
+  const wt = base.vals.pi_wt, ht = base.vals.pi_ht;
+
+  const r1 = validReq(['pi1_d']);
+  const ok1 = base.ok && r1.ok;
+  showWarn('pi1_warn', !ok1);
+  if (ok1) phtCase1(wt, ht, r1.vals.pi1_d, F, 'pi1'); else pendingCase1('pi1');
+
+  const r2 = validReq(['pi2_d','pi2_ss','pi2_nd']);
+  showWarn('pi2_warn', !r2.ok);
+  if (r2.ok) phtCase2(r2.vals.pi2_d, r2.vals.pi2_ss, r2.vals.pi2_nd, F, 'pi2_vmax', 'pi2_cnew');
+  else { setRv('pi2_vmax', null, undefined, undefined, true); setRv('pi2_cnew', null, undefined, undefined, true); }
+
+  const r3 = validReq(['pi3_ss','pi3_alb']);
+  showWarn('pi3_warn', !r3.ok);
+  if (r3.ok) phtCase3(r3.vals.pi3_ss, r3.vals.pi3_alb, gv('pi3_crcl'), 'pi3_form', 'pi3_c');
+  else { const el=t('pi3_form'); el.textContent='รอข้อมูล'; el.classList.add('pending'); setRv('pi3_c', null, undefined, undefined, true); }
+
+  const r4 = validReq(['pi4_ss','pi4_vpa']);
+  showWarn('pi4_warn', !r4.ok);
+  if (r4.ok) phtCase4(r4.vals.pi4_ss, r4.vals.pi4_vpa, 'pi4_c');
+  else setRv('pi4_c', null, undefined, undefined, true);
+
+  const r5 = validReq(['pi5_d','pi5_c1','pi5_c2']);
+  const ok5 = base.ok && r5.ok;
+  showWarn('pi5_warn', !ok5);
+  if (ok5) phtCase5(wt, ht, r5.vals.pi5_d, r5.vals.pi5_c1, r5.vals.pi5_c2, parseInt(gv('pi5_ob')), F, 'pi5');
+  else pendingCase5('pi5');
+}
+
+/* ── init ── */
+calcLi(); calcVp(); calcPc(); calcPi();
+</script>
+</body>
+</html>
