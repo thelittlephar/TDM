@@ -80,6 +80,7 @@ header{
 .ldot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
 .ldot.ok{background:#86efac;border:1px solid #15803d}
 .ldot.hi{background:#fca5a5;border:1px solid #b91c1c}
+.ldot.lo{background:#93c5fd;border:1px solid #1e40af}
 .ldot.am{background:#fcd34d;border:1px solid #d97706}
 .ldot.na{background:#cbd5e1;border:1px solid #94a3b8}
 .legend strong{color:#ef4444}
@@ -192,6 +193,7 @@ tr:nth-child(even) td{background:#fafafa}
 }
 .rv.ok{background:var(--rv-ok-bg);color:var(--rv-ok);border-color:var(--rv-ok-bd)}
 .rv.hi{background:var(--rv-hi-bg);color:var(--rv-hi);border-color:var(--rv-hi-bd)}
+.rv.lo{background:#eff6ff;color:#1e40af;border-color:#93c5fd}
 .rv.na{background:var(--rv-na-bg);color:var(--rv-na);border-color:var(--rv-na-bd);font-style:italic;font-size:12px;font-weight:500;text-align:center}
 
 /* ── BADGES ── */
@@ -229,10 +231,10 @@ footer{text-align:center;padding:20px 16px;font-size:11.5px;color:var(--muted);b
     <button class="pill-btn" onclick="window.print()">🖨 พิมพ์</button>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" data-drug="li" onclick="switchTab('li',this)">⭑ Lithium</button>
-    <button class="tab-btn" data-drug="vp" onclick="switchTab('vp',this)">⭑ Valproate</button>
-    <button class="tab-btn" data-drug="pc" onclick="switchTab('pc',this)">⭑ Phenytoin Capsule</button>
-    <button class="tab-btn" data-drug="pi" onclick="switchTab('pi',this)">⭑ Phenytoin Infatab</button>
+    <button class="tab-btn active" data-drug="li" onclick="switchTab('li',this)">🔮 Lithium</button>
+    <button class="tab-btn" data-drug="vp" onclick="switchTab('vp',this)">🌿 Valproate</button>
+    <button class="tab-btn" data-drug="pc" onclick="switchTab('pc',this)">🟠 Phenytoin Capsule</button>
+    <button class="tab-btn" data-drug="pi" onclick="switchTab('pi',this)">🔵 Phenytoin Infatab</button>
   </div>
 </header>
 
@@ -241,7 +243,8 @@ footer{text-align:center;padding:20px 16px;font-size:11.5px;color:var(--muted);b
 <div class="legend">
   <strong>*</strong> = ช่องบังคับกรอก — ถ้ากรอกไม่ครบระบบจะแสดง "รอข้อมูล"
   <span class="lchip"><span class="ldot ok"></span>อยู่ใน Therapeutic range</span>
-  <span class="lchip"><span class="ldot hi"></span>นอกช่วง / ต้องระวัง</span>
+  <span class="lchip"><span class="ldot hi"></span>เกิน range / ต้องระวัง</span>
+  <span class="lchip"><span class="ldot lo"></span>ต่ำกว่า range / ปรับเพิ่มขนาดยา</span>
   <span class="lchip"><span class="ldot am"></span>คำนวณได้ (ไม่มีช่วงอ้างอิง)</span>
   <span class="lchip"><span class="ldot na"></span>รอข้อมูล</span>
 </div>
@@ -716,7 +719,9 @@ function setRv(id,v,lo,hi,pending){
   el.textContent=f2(v); el.className='rv';
   if(v===null||isNaN(v)||!isFinite(v)){el.classList.add('na');return;}
   if(lo!==undefined&&hi!==undefined){
-    el.classList.add(v<lo||v>hi?'hi':'ok');
+    if(v<lo)el.classList.add('lo');
+    else if(v>hi)el.classList.add('hi');
+    else el.classList.add('ok');
   }
 }
 function setText(id,v,pending){
