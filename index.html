@@ -231,10 +231,10 @@ footer{text-align:center;padding:20px 16px;font-size:11.5px;color:var(--muted);b
     <button class="pill-btn" onclick="window.print()">🖨 พิมพ์</button>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" data-drug="li" onclick="switchTab('li',this)">★ Lithium</button>
-    <button class="tab-btn" data-drug="vp" onclick="switchTab('vp',this)">★ Valproate</button>
-    <button class="tab-btn" data-drug="pc" onclick="switchTab('pc',this)">★ Phenytoin Capsule</button>
-    <button class="tab-btn" data-drug="pi" onclick="switchTab('pi',this)">★ Phenytoin Infatab</button>
+    <button class="tab-btn active" data-drug="li" onclick="switchTab('li',this)">🟣 Lithium</button>
+    <button class="tab-btn" data-drug="vp" onclick="switchTab('vp',this)">🟢 Valproate</button>
+    <button class="tab-btn" data-drug="pc" onclick="switchTab('pc',this)">🟠 Phenytoin Capsule</button>
+    <button class="tab-btn" data-drug="pi" onclick="switchTab('pi',this)">🔵 Phenytoin Infatab</button>
   </div>
 </header>
 
@@ -269,8 +269,9 @@ footer{text-align:center;padding:20px 16px;font-size:11.5px;color:var(--muted);b
           <input type="number" id="li_scr" value="0.6" step="0.01" min="0.01" oninput="calcLi()">
           <span class="unit">mg/dL</span></div>
         <div class="field req"><label>ขนาดยา/วัน (Dose)</label>
-          <input type="number" id="li_dose" value="2" min="0" step="0.5" oninput="calcLi()">
-          <span class="unit">cap/d (300 mg/cap)</span></div>
+          <input type="number" id="li_dose" value="600" min="0" step="150" oninput="calcLi()">
+          <span class="unit">mg/d</span></div>
+        <div class="note" style="margin-top:4px">💡 กรอกหน่วย <strong>mg/วัน</strong> เช่น 300, 600, 900 mg/d (1 cap = 300 mg)</div>
       </div>
       <div class="note">⭐ <strong>เลือกใช้น้ำหนักที่น้อยกว่า</strong> (IBW หรือ real BW) ในการทำนาย Css</div>
     </div>
@@ -306,15 +307,15 @@ footer{text-align:center;padding:20px 16px;font-size:11.5px;color:var(--muted);b
     <div class="card-body">
       <div class="grid g2">
         <div class="field req"><label>ขนาดยาที่ได้รับปัจจุบัน</label>
-          <input type="number" id="li_given" value="2" min="0" step="0.5" oninput="calcLi()">
-          <span class="unit">cap/d</span></div>
+          <input type="number" id="li_given" value="600" min="0" step="150" oninput="calcLi()">
+          <span class="unit">mg/d</span></div>
         <div class="field req"><label>ระดับยาที่วัดได้ที่ ss</label>
           <input type="number" id="li_ss" value="0.9" step="0.01" min="0.01" oninput="calcLi()">
           <span class="unit">mEq/L</span></div>
       </div>
       <div class="req-warn" id="li_warn_dose"><span class="ic">⚠️</span><span>กรุณากรอกขนาดยาที่ได้รับและระดับยาที่วัดได้ (ช่อง *) ก่อน</span></div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>เป้าหมาย</th><th>ขนาดยาที่แนะนำ (cap/d)</th></tr></thead>
+        <thead><tr><th>เป้าหมาย</th><th>ขนาดยาที่แนะนำ (mg/d)</th></tr></thead>
         <tbody>
           <tr><td>Minimum dose — target 0.6 mEq/L</td><td><span class="rv" id="li_min">—</span></td></tr>
           <tr><td>Max dose — Acute phase (target 1.2 mEq/L)</td><td><span class="rv" id="li_max_ac">—</span></td></tr>
@@ -748,10 +749,11 @@ function calcLi(){
   const r1=validReq(['li_wt','li_ht','li_age','li_scr','li_dose']);
   showWarn('li_warn_pred',!r1.ok);
   if(r1.ok){
-    const{li_wt:wt,li_ht:ht,li_age:age,li_scr:scr,li_dose:dose}=r1.vals;
+    const{li_wt:wt,li_ht:ht,li_age:age,li_scr:scr,li_dose:dose_mg}=r1.vals;
+    const dose_cap=dose_mg/300; // แปลง mg → cap (1 cap = 300 mg)
     const ibwM=ibwFn(ht,'M'),ibwF=ibwFn(ht,'F');
     const crcl=(bw,sex)=>{const b=((140-age)*bw)/(72*scr);return sex==='F'?b*0.85:b;};
-    const css=cl=>(dose*8.12)/((0.235*cl*24*60)/1000);
+    const css=cl=>(dose_cap*8.12)/((0.235*cl*24*60)/1000);
     const mI=crcl(ibwM,'M'),mR=crcl(wt,'M'),fI=crcl(ibwF,'F'),fR=crcl(wt,'F');
     setText('li_m_ibw',ibwM);setText('li_realwt',wt);
     setText('li_f_ibw',ibwF);setText('li_f_rbw',wt);
